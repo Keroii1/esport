@@ -3,8 +3,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Esport – League of Legends</title>
 <style>
-:root{--bg:#0b1220;--ink:#eaf1fb;--mut:#8fa1ba;--card:#141f33;--line:#233350;--acc:#4da3ff;--live:#ff4d5e}
-@media(prefers-color-scheme:light){:root{--bg:#eef3f8;--ink:#10223a;--mut:#5a6b82;--card:#fff;--line:#d3dde9;--acc:#0a6cff}}
+:root{--bg:#0b1220;--ink:#eaf1fb;--mut:#8fa1ba;--card:#141f33;--line:#233350;--acc:#4da3ff;--live:#ff4d5e;--win:#2fd18b;--lose:#ff6b7a}
+@media(prefers-color-scheme:light){:root{--bg:#eef3f8;--ink:#10223a;--mut:#5a6b82;--card:#fff;--line:#d3dde9;--acc:#0a6cff;--win:#0f8a5f;--lose:#d6384a}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,sans-serif}
 header{padding:20px 16px 8px;max-width:720px;margin:auto}
@@ -15,27 +15,44 @@ button,input{font:inherit;border:1px solid var(--line);background:var(--card);co
 button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 nav button{flex:none}
 main{padding:4px 16px 40px;max-width:720px;margin:auto}
-h2{font-size:1rem;color:var(--mut);margin:20px 0 8px}
+h2{font-size:1rem;color:var(--mut);margin:22px 0 8px}
 input{width:100%;border-radius:10px;margin:8px 0}
-.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
-.c small{display:block;color:var(--mut);margin-top:6px}
-.k,.tm{cursor:pointer;display:flex;gap:12px;align-items:center}
-.k>div,.tm>div{flex:1;min-width:0}
+.c{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
+.c small,.mut{display:block;color:var(--mut);margin-top:4px}
+.k,.go{cursor:pointer;display:flex;gap:12px;align-items:center}
+.go:active,.k:active,[data-team]:active{opacity:.6}
+.k>div,.go>div{flex:1;min-width:0}
 .t{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
 .s{display:flex;gap:8px;align-items:center;font-weight:600}
 .s.r{flex-direction:row-reverse;text-align:right}
+.s[data-team]{cursor:pointer}
 .sc{font-size:1.1rem;color:var(--acc)}
 img{width:34px;height:34px;object-fit:contain;flex:none}
 .ph{width:34px;height:34px;border-radius:50%;background:var(--line);flex:none}
 .live{background:var(--live);color:#fff;border-radius:6px;padding:1px 6px;font-size:.75rem;font-weight:700;margin-right:6px}
 .back{margin:8px 0}
-.pl{display:flex;gap:12px;align-items:center}
-.pl img{width:48px;height:48px;border-radius:50%;object-fit:cover}
+.hero{display:flex;gap:14px;align-items:center;background:linear-gradient(135deg,var(--card),var(--bg));border:1px solid var(--line);border-radius:18px;padding:16px;margin:8px 0}
+.hero img{width:72px;height:72px}
+.hero.p img{width:96px;height:96px;border-radius:50%;object-fit:cover}
+.hero h3{margin:0;font-size:1.5rem}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.st{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 8px;text-align:center}
+.st b{display:block;font-size:1.4rem}
+.st span{color:var(--mut);font-size:.8rem}
+.ring{--p:0;width:84px;height:84px;border-radius:50%;background:conic-gradient(var(--win) calc(var(--p)*1%),var(--line) 0);display:grid;place-items:center;flex:none}
+.ring span{width:66px;height:66px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-weight:700}
+.form{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.f{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:.8rem;font-weight:700;color:#fff}
+.f.w{background:var(--win)}.f.l{background:var(--lose)}
+.bar{height:8px;border-radius:4px;background:var(--lose);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--win)}
+.pl img{width:52px;height:52px;border-radius:50%;object-fit:cover}
+.role{display:inline-block;background:var(--line);border-radius:8px;padding:0 8px;font-size:.8rem;margin-left:6px}
 </style></head><body>
 <header><h1>Esport</h1><p>League of Legends · données en direct</p></header>
 <nav id="nav">
 <button data-v="up">À venir</button><button data-v="run">En cours</button>
-<button data-v="tour">Compétitions</button><button data-v="team">Équipes</button>
+<button data-v="tour">Compétitions</button><button data-v="team">Équipes</button><button data-v="ply">Joueurs</button>
 </nav>
 <main id="app">Chargement…</main>
 <script>
@@ -50,9 +67,10 @@ const e=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>
 const fd=s=>s?new Date(s).toLocaleString('fr-FR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'date à confirmer';
 const fday=s=>s?new Date(s).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'?';
 const img=u=>u?'<img src="'+e(u)+'" alt="" loading="lazy">':'<span class="ph"></span>';
+const flag=c=>c&&c.length==2?String.fromCodePoint(...[...c.toUpperCase()].map(x=>127397+x.charCodeAt(0))):'';
 function match(m){
   const o=m.opponents||[];
-  const side=(i,c)=>'<div class="s '+c+'">'+(o[i]?img(o[i].opponent.image_url)+'<span>'+e(o[i].opponent.acronym||o[i].opponent.name)+'</span>':'<span class="ph"></span><span>À confirmer</span>')+'</div>';
+  const side=(i,c)=>o[i]?'<div class="s '+c+'" data-team="'+o[i].opponent.id+'">'+img(o[i].opponent.image_url)+'<span>'+e(o[i].opponent.acronym||o[i].opponent.name)+'</span></div>':'<div class="s '+c+'"><span class="ph"></span><span>À confirmer</span></div>';
   const r=m.results||[];
   const mid='<b class="sc">'+((m.status!=='not_started'&&r.length)?r.map(x=>x.score).join(' - '):'vs')+'</b>';
   const live=m.status==='running'?'<span class="live">EN DIRECT</span>':'';
@@ -61,6 +79,9 @@ function match(m){
 let fail='';
 const safe=p=>p.catch(x=>{fail=x.message;return[]});
 const trow=t=>'<div class="c k" data-tid="'+t.id+'">'+img(t.league&&t.league.image_url)+'<div><b>'+e(t.league&&t.league.name)+' – '+e(t.name)+'</b><small>'+e(t.serie&&t.serie.full_name)+' · '+fday(t.begin_at)+' → '+fday(t.end_at)+'</small></div></div>';
+const prow=p=>'<div class="c go pl" data-ply="'+p.id+'">'+img(p.image_url)+'<div><b>'+e(p.name)+'</b><span class="role">'+e(p.role||'?')+'</span><small>'+flag(p.nationality)+' '+e(p.nationality||'')+' '+e([p.first_name,p.last_name].filter(Boolean).join(' '))+(p.current_team?' · '+e(p.current_team.name):'')+'</small></div></div>';
+const trow2=t=>'<div class="c go" data-team="'+t.id+'">'+img(t.image_url)+'<div><b>'+e(t.name)+'</b><small>'+e(t.location||'')+'</small></div></div>';
+const search=(ph)=>'<input id="q" placeholder="'+ph+'"><div id="res"></div>';
 const views={
   async up(){const d=await api('/lol/matches/upcoming',{'page[size]':25});return d.map(match).join('')||'Aucun match à venir.'},
   async run(){const d=await api('/lol/matches/running');return d.map(match).join('')||'Aucun match en cours pour le moment.'},
@@ -73,39 +94,57 @@ const views={
     const sec=(h,l)=>l.length?'<h2>'+h+'</h2>'+l.map(trow).join(''):'';
     return (sec('En cours',a)+sec('À venir',b)+sec('Terminées récemment',c))||('Aucune compétition trouvée.'+(fail?' ('+e(fail)+')':''));
   },
-  async team(){return '<input id="q" placeholder="Chercher une équipe (ex : T1, G2, Gen.G)"><div id="res"></div>'}
+  async team(){return search('Chercher une équipe (ex : T1, G2, Gen.G)')},
+  async ply(){return search('Chercher un joueur (ex : Faker, Caps)')}
 };
-async function show(v){
+let cur='up',stack=[];
+function run(fn){stack.push(fn);app.textContent='Chargement…';window.scrollTo(0,0);fn().then(h=>app.innerHTML=h).catch(x=>app.innerHTML=back()+'<div class="c">'+e(x.message)+'</div>');}
+const back=()=>'<button class="back" data-back>← Retour</button>';
+function show(v){
+  cur=v;stack=[];
   [...nav.children].forEach(b=>b.classList.toggle('on',b.dataset.v===v));
-  app.textContent='Chargement…';
-  try{app.innerHTML=await views[v]();}catch(x){app.innerHTML='<div class="c">'+e(x.message)+'</div>';}
+  run(views[v]);
 }
-const back='<button class="back" data-back>← Retour</button>';
-async function bracket(id){
-  app.textContent='Chargement…';
-  try{
-    const d=await api('/tournaments/'+id+'/brackets');
-    d.sort((a,b)=>String(a.scheduled_at).localeCompare(String(b.scheduled_at)));
-    app.innerHTML=back+'<h2>Tableau et matchs</h2>'+(d.map(match).join('')||'Pas de tableau disponible pour cette phase.');
-  }catch(x){app.innerHTML=back+'<div class="c">'+e(x.message)+'</div>';}
-}
-async function team(id){
-  app.textContent='Chargement…';
-  try{
-    const t=await api('/teams/'+id);
-    app.innerHTML=back+'<div class="pl">'+img(t.image_url)+'<h2 style="margin:0;color:inherit;font-size:1.4rem">'+e(t.name)+'</h2></div><h2>Effectif</h2>'+
-      ((t.players||[]).map(p=>'<div class="c pl">'+img(p.image_url)+'<div><b>'+e(p.name)+'</b><small>'+e(p.role||'rôle inconnu')+' · '+e(p.nationality||'')+' · '+e([p.first_name,p.last_name].filter(Boolean).join(' '))+'</small></div></div>').join('')||'Effectif indisponible.');
-  }catch(x){app.innerHTML=back+'<div class="c">'+e(x.message)+'</div>';}
-}
-let cur='up',timer;
-nav.onclick=ev=>{const v=ev.target.dataset.v;if(v){cur=v;show(v);}};
-app.onclick=ev=>{
-  const t=ev.target.closest('[data-tid],[data-team],[data-back]');
-  if(!t)return;
-  if(t.dataset.tid)bracket(t.dataset.tid);
-  else if(t.dataset.team)team(t.dataset.team);
-  else show(cur);
+const bracket=id=>async()=>{
+  const d=await api('/tournaments/'+id+'/brackets');
+  d.sort((a,b)=>String(a.scheduled_at).localeCompare(String(b.scheduled_at)));
+  return back()+'<h2>Tableau et matchs</h2>'+(d.map(match).join('')||'Pas de tableau disponible pour cette phase.');
 };
+const team=id=>async()=>{
+  const [t,ms]=await Promise.all([api('/teams/'+id),safe(api('/lol/matches/past',{'filter[opponent_id]':id,'page[size]':20,sort:'-begin_at'}))]);
+  const done=ms.filter(m=>m.winner_id);
+  const w=done.filter(m=>m.winner_id==id).length,n=done.length,pct=n?Math.round(100*w/n):0;
+  let gw=0,gl=0;
+  done.forEach(m=>(m.results||[]).forEach(r=>{if(r.team_id==id)gw+=r.score;else gl+=r.score;}));
+  const form=done.slice(0,10).map(m=>'<span class="f '+(m.winner_id==id?'w':'l')+'">'+(m.winner_id==id?'V':'D')+'</span>').join('');
+  const stats=n?'<h2>Statistiques (20 derniers matchs)</h2><div class="c go" style="cursor:default"><div class="ring" style="--p:'+pct+'"><span>'+pct+'%</span></div><div><b>'+w+' victoires · '+(n-w)+' défaites</b><small>Forme récente (du plus récent au plus ancien)</small><div class="form">'+form+'</div></div></div><div class="grid"><div class="st"><b>'+n+'</b><span>séries</span></div><div class="st"><b>'+gw+'</b><span>manches gagnées</span></div><div class="st"><b>'+gl+'</b><span>manches perdues</span></div></div><div class="bar" title="manches"><i style="width:'+(gw+gl?Math.round(100*gw/(gw+gl)):0)+'%"></i></div>':'<h2>Statistiques</h2><div class="c">Pas assez de matchs récents pour calculer des stats.</div>';
+  return back()+'<div class="hero">'+img(t.image_url)+'<div><h3>'+e(t.name)+'</h3><span class="mut">'+e(t.location||'')+'</span></div></div>'+stats+
+    '<h2>Effectif (touche un joueur)</h2>'+((t.players||[]).map(prow).join('')||'Effectif indisponible.')+
+    (done.length?'<h2>Derniers matchs</h2>'+done.slice(0,6).map(match).join(''):'');
+};
+const label=k=>k.replace(/_/g,' ');
+const player=id=>async()=>{
+  const p=await api('/players/'+id);
+  let st=null;try{st=await api('/players/'+id+'/stats');}catch(x){st=null}
+  const rows=[];
+  (function walk(o,pre,d){if(!o||d>2)return;Object.entries(o).forEach(([k,v])=>{if(typeof v==='number'||(typeof v==='string'&&v.length<25&&v))rows.push([pre+label(k),v]);else if(v&&typeof v==='object'&&!Array.isArray(v))walk(v,label(k)+' · ',d+1);});})(st,'',0);
+  const stHtml=rows.length?'<h2>Statistiques</h2><div class="grid">'+rows.slice(0,15).map(r=>'<div class="st"><b>'+e(typeof r[1]==='number'?Math.round(r[1]*100)/100:r[1])+'</b><span>'+e(r[0])+'</span></div>').join('')+'</div>':'<h2>Statistiques</h2><div class="c">Les stats détaillées de ce joueur ne sont pas disponibles avec le plan gratuit.</div>';
+  const age=p.birthday?Math.floor((Date.now()-new Date(p.birthday))/31557600000):null;
+  const info=[['Rôle',p.role],['Nationalité',flag(p.nationality)+' '+(p.nationality||'')],['Âge',age?age+' ans':null],['Nom',[p.first_name,p.last_name].filter(Boolean).join(' ')],['Ville',p.hometown]].filter(x=>x[1]&&String(x[1]).trim());
+  return back()+'<div class="hero p">'+img(p.image_url)+'<div><h3>'+e(p.name)+'</h3><span class="mut">'+e(p.role||'')+'</span></div></div>'+
+    (p.current_team?'<div class="c go" data-team="'+p.current_team.id+'">'+img(p.current_team.image_url)+'<div><b>'+e(p.current_team.name)+'</b><small>Équipe actuelle · touche pour la voir</small></div></div>':'')+
+    '<h2>Infos</h2><div class="grid">'+info.map(x=>'<div class="st"><b style="font-size:1.05rem">'+e(x[1])+'</b><span>'+e(x[0])+'</span></div>').join('')+'</div>'+stHtml;
+};
+nav.onclick=ev=>{const v=ev.target.dataset.v;if(v)show(v);};
+app.onclick=ev=>{
+  const t=ev.target.closest('[data-tid],[data-team],[data-ply],[data-back]');
+  if(!t)return;
+  if(t.dataset.tid)run(bracket(t.dataset.tid));
+  else if(t.dataset.team)run(team(t.dataset.team));
+  else if(t.dataset.ply)run(player(t.dataset.ply));
+  else{stack.pop();const f=stack.pop();if(f)run(f);else show(cur);}
+};
+let timer;
 app.oninput=ev=>{
   if(ev.target.id!=='q')return;
   clearTimeout(timer);
@@ -113,10 +152,10 @@ app.oninput=ev=>{
     const q=ev.target.value.trim(),res=document.getElementById('res');
     if(q.length<2){res.innerHTML='';return;}
     try{
-      const d=await api('/lol/teams',{'search[name]':q,'page[size]':15});
-      res.innerHTML=d.map(t=>'<div class="c tm" data-team="'+t.id+'">'+img(t.image_url)+'<div><b>'+e(t.name)+'</b><small>'+e(t.location||'')+'</small></div></div>').join('')||'Aucune équipe trouvée.';
+      if(cur==='ply'){const d=await api('/lol/players',{'search[name]':q,'page[size]':15});res.innerHTML=d.map(prow).join('')||'Aucun joueur trouvé.';}
+      else{const d=await api('/lol/teams',{'search[name]':q,'page[size]':15});res.innerHTML=d.map(trow2).join('')||'Aucune équipe trouvée.';}
     }catch(x){res.innerHTML='<div class="c">'+e(x.message)+'</div>';}
   },400);
-};
+  };
 show('up');
 </script></body></html>
