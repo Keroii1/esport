@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Esport – League of Legends</title>
+<style>
+:root{--bg:#eef3f8;--ink:#10223a;--mut:#5a6b82;--card:#fff;--line:#d3dde9;--acc:#0a6cff}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1726;--ink:#e6eef9;--mut:#93a4bb;--card:#16253a;--line:#2a3b55;--acc:#5aa2ff}}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif;max-width:720px;margin-inline:auto}
+h1{font-size:1.5rem;margin:0 0 8px}
+nav{display:flex;gap:8px;overflow-x:auto;margin:10px 0}
+button,input{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:20px}
+button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+nav button{flex:none}
+input{width:100%;border-radius:8px;margin-bottom:8px}
+.c{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:6px}
+.c[data-tid],.c[data-team]{cursor:pointer;border-left:4px solid var(--acc)}
+.c small{display:block;color:var(--mut)}
+.back{margin-bottom:8px}
+</style></head><body>
+<h1>League of Legends</h1>
+<nav id="nav">
+<button data-v="up">À venir</button><button data-v="run">En cours</button>
+<button data-v="tour">Compétitions</button><button data-v="team">Équipes</button>
+</nav>
+<div id="app">Chargement…</div>
+<script>
+const app=document.getElementById('app'),nav=document.getElementById('nav');
+async function api(path,q={}){
+  const r=await fetch('/api/lol?'+new URLSearchParams({path,...q}));
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.error||d.message||('Erreur '+r.status));
+  return d;
+}
+const e=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fd=s=>s?new Date(s).toLocaleString('fr-FR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'date à confirmer';
+function match(m){
+  const names=(m.opponents||[]).map(x=>e(x.opponent.name)).join(' vs ')||'À confirmer';
+  const sc=(m.results&&m.results.length&&m.status!=='not_started')?' ('+m.results.map(r=>r.score).join(' - ')+')':'';
+  const lg=m.league?e(m.league.name):'';
+  return '<div class="c"><b>'+names+sc+'</b><small>'+(m.name?e(m.name)+' · ':'')+lg+' · '+fd(m.begin_at||m.scheduled_at)+'</small></div>';
+}
+const views={
+  async up(){const d=await api('/lol/matches/upcoming',{'page[size]':20});return d.map(match).join('')||'Aucun match à venir.'},
+  async run(){const d=await api('/lol/matches/running');return d.map(match).join('')||'Aucun match en cours.'},
+  async tour(){
+    const d=await api('/lol/tournaments/running',{'page[size]':30});
+    return d.map(t=>'<div class="c" data-tid="'+t.id+'"><b>'+e(t.league&&t.league.name)+' – '+e(t.name)+'</b><small>'+e(t.serie&&t.serie.full_name)+' · touche pour voir le tableau</small></div>').join('')||'Aucune compétition en cours.';
+  },
+  async team(){return '<input id="q" placeholder="Nom d\'équipe (ex : T1)"><div id="res"></div>'}
+};
+async function show(v){
+  [...nav.children].forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  app.textContent='Chargement…';
+  try{app.innerHTML=await views[v]();}catch(x){app.innerHTML='<div class="c">'+e(x.message)+'</div>';}
+}
+async function bracket(id){
+  app.textContent='Chargement…';
+  try{
+    const d=await api('/tournaments/'+id+'/brackets');
+    d.sort((a,b)=>String(a.scheduled_at).localeCompare(String(b.scheduled_at)));
+    app.innerHTML='<button class="back" data-back>← Retour</button>'+(d.map(match).join('')||'Pas de tableau disponible.');
+  }catch(x){app.innerHTML='<button class="back" data-back>← Retour</button><div class="c">'+e(x.message)+'</div>';}
+}
+async function team(id){
+  app.textContent='Chargement…';
+  try{
+    const t=await api('/teams/'+id);
+    app.innerHTML='<button class="back" data-back>← Retour</button><h2>'+e(t.name)+'</h2>'+
+      ((t.players||[]).map(p=>'<div class="c"><b>'+e(p.name)+'</b><small>'+e(p.role||'rôle inconnu')+' · '+e(p.nationality||'')+' · '+e([p.first_name,p.last_name].filter(Boolean).join(' '))+'</small></div>').join('')||'Effectif indisponible.');
+  }catch(x){app.innerHTML='<button class="back" data-back>← Retour</button><div class="c">'+e(x.message)+'</div>';}
+}
+let cur='up',timer;
+nav.onclick=ev=>{const v=ev.target.dataset.v;if(v){cur=v;show(v);}};
+app.onclick=ev=>{
+  const t=ev.target.closest('[data-tid],[data-team],[data-back]');
+  if(!t)return;
+  if(t.dataset.tid)bracket(t.dataset.tid);
+  else if(t.dataset.team)team(t.dataset.team);
+  else show(cur);
+};
+app.oninput=ev=>{
+  if(ev.target.id!=='q')return;
+  clearTimeout(timer);
+  timer=setTimeout(async()=>{
+    const q=ev.target.value.trim(),res=document.getElementById('res');
+    if(q.length<2){res.innerHTML='';return;}
+    try{
+      const d=await api('/lol/teams',{'search[name]':q,'page[size]':15});
+      res.innerHTML=d.map(t=>'<div class="c" data-team="'+t.id+'"><b>'+e(t.name)+'</b><small>'+e(t.location||'')+'</small></div>').join('')||'Aucune équipe trouvée.';
+    }catch(x){res.innerHTML='<div class="c">'+e(x.message)+'</div>';}
+  },400);
+};
+show('up');
+</script></body></html>
