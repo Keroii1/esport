@@ -3,27 +3,41 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Esport – League of Legends</title>
 <style>
-:root{--bg:#eef3f8;--ink:#10223a;--mut:#5a6b82;--card:#fff;--line:#d3dde9;--acc:#0a6cff}
-@media(prefers-color-scheme:dark){:root{--bg:#0d1726;--ink:#e6eef9;--mut:#93a4bb;--card:#16253a;--line:#2a3b55;--acc:#5aa2ff}}
+:root{--bg:#0b1220;--ink:#eaf1fb;--mut:#8fa1ba;--card:#141f33;--line:#233350;--acc:#4da3ff;--live:#ff4d5e}
+@media(prefers-color-scheme:light){:root{--bg:#eef3f8;--ink:#10223a;--mut:#5a6b82;--card:#fff;--line:#d3dde9;--acc:#0a6cff}}
 *{box-sizing:border-box}
-body{margin:0;padding:16px;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif;max-width:720px;margin-inline:auto}
-h1{font-size:1.5rem;margin:0 0 8px}
-nav{display:flex;gap:8px;overflow-x:auto;margin:10px 0}
-button,input{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,sans-serif}
+header{padding:20px 16px 8px;max-width:720px;margin:auto}
+h1{font-size:1.6rem;margin:0;letter-spacing:-.02em}
+header p{margin:2px 0 0;color:var(--mut)}
+nav{position:sticky;top:0;background:var(--bg);display:flex;gap:8px;overflow-x:auto;padding:10px 16px;max-width:720px;margin:auto;z-index:2}
+button,input{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 16px;border-radius:22px}
 button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 nav button{flex:none}
-input{width:100%;border-radius:8px;margin-bottom:8px}
-.c{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:6px}
-.c[data-tid],.c[data-team]{cursor:pointer;border-left:4px solid var(--acc)}
-.c small{display:block;color:var(--mut)}
-.back{margin-bottom:8px}
+main{padding:4px 16px 40px;max-width:720px;margin:auto}
+h2{font-size:1rem;color:var(--mut);margin:20px 0 8px}
+input{width:100%;border-radius:10px;margin:8px 0}
+.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
+.c small{display:block;color:var(--mut);margin-top:6px}
+.k,.tm{cursor:pointer;display:flex;gap:12px;align-items:center}
+.k>div,.tm>div{flex:1;min-width:0}
+.t{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+.s{display:flex;gap:8px;align-items:center;font-weight:600}
+.s.r{flex-direction:row-reverse;text-align:right}
+.sc{font-size:1.1rem;color:var(--acc)}
+img{width:34px;height:34px;object-fit:contain;flex:none}
+.ph{width:34px;height:34px;border-radius:50%;background:var(--line);flex:none}
+.live{background:var(--live);color:#fff;border-radius:6px;padding:1px 6px;font-size:.75rem;font-weight:700;margin-right:6px}
+.back{margin:8px 0}
+.pl{display:flex;gap:12px;align-items:center}
+.pl img{width:48px;height:48px;border-radius:50%;object-fit:cover}
 </style></head><body>
-<h1>League of Legends</h1>
+<header><h1>Esport</h1><p>League of Legends · données en direct</p></header>
 <nav id="nav">
 <button data-v="up">À venir</button><button data-v="run">En cours</button>
 <button data-v="tour">Compétitions</button><button data-v="team">Équipes</button>
 </nav>
-<div id="app">Chargement…</div>
+<main id="app">Chargement…</main>
 <script>
 const app=document.getElementById('app'),nav=document.getElementById('nav');
 async function api(path,q={}){
@@ -34,41 +48,54 @@ async function api(path,q={}){
 }
 const e=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fd=s=>s?new Date(s).toLocaleString('fr-FR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'date à confirmer';
+const fday=s=>s?new Date(s).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'?';
+const img=u=>u?'<img src="'+e(u)+'" alt="" loading="lazy">':'<span class="ph"></span>';
 function match(m){
-  const names=(m.opponents||[]).map(x=>e(x.opponent.name)).join(' vs ')||'À confirmer';
-  const sc=(m.results&&m.results.length&&m.status!=='not_started')?' ('+m.results.map(r=>r.score).join(' - ')+')':'';
-  const lg=m.league?e(m.league.name):'';
-  return '<div class="c"><b>'+names+sc+'</b><small>'+(m.name?e(m.name)+' · ':'')+lg+' · '+fd(m.begin_at||m.scheduled_at)+'</small></div>';
+  const o=m.opponents||[];
+  const side=(i,c)=>'<div class="s '+c+'">'+(o[i]?img(o[i].opponent.image_url)+'<span>'+e(o[i].opponent.acronym||o[i].opponent.name)+'</span>':'<span class="ph"></span><span>À confirmer</span>')+'</div>';
+  const r=m.results||[];
+  const mid='<b class="sc">'+((m.status!=='not_started'&&r.length)?r.map(x=>x.score).join(' - '):'vs')+'</b>';
+  const live=m.status==='running'?'<span class="live">EN DIRECT</span>':'';
+  return '<div class="c"><div class="t">'+side(0,'')+mid+side(1,'r')+'</div><small>'+live+(m.name?e(m.name)+' · ':'')+e(m.league&&m.league.name)+' · '+fd(m.begin_at||m.scheduled_at)+'</small></div>';
 }
+let fail='';
+const safe=p=>p.catch(x=>{fail=x.message;return[]});
+const trow=t=>'<div class="c k" data-tid="'+t.id+'">'+img(t.league&&t.league.image_url)+'<div><b>'+e(t.league&&t.league.name)+' – '+e(t.name)+'</b><small>'+e(t.serie&&t.serie.full_name)+' · '+fday(t.begin_at)+' → '+fday(t.end_at)+'</small></div></div>';
 const views={
-  async up(){const d=await api('/lol/matches/upcoming',{'page[size]':20});return d.map(match).join('')||'Aucun match à venir.'},
-  async run(){const d=await api('/lol/matches/running');return d.map(match).join('')||'Aucun match en cours.'},
+  async up(){const d=await api('/lol/matches/upcoming',{'page[size]':25});return d.map(match).join('')||'Aucun match à venir.'},
+  async run(){const d=await api('/lol/matches/running');return d.map(match).join('')||'Aucun match en cours pour le moment.'},
   async tour(){
-    const d=await api('/lol/tournaments/running',{'page[size]':30});
-    return d.map(t=>'<div class="c" data-tid="'+t.id+'"><b>'+e(t.league&&t.league.name)+' – '+e(t.name)+'</b><small>'+e(t.serie&&t.serie.full_name)+' · touche pour voir le tableau</small></div>').join('')||'Aucune compétition en cours.';
+    fail='';
+    const [a,b,c]=await Promise.all([
+      safe(api('/lol/tournaments/running',{'page[size]':30})),
+      safe(api('/lol/tournaments/upcoming',{'page[size]':10})),
+      safe(api('/lol/tournaments/past',{'page[size]':10,sort:'-end_at'}))]);
+    const sec=(h,l)=>l.length?'<h2>'+h+'</h2>'+l.map(trow).join(''):'';
+    return (sec('En cours',a)+sec('À venir',b)+sec('Terminées récemment',c))||('Aucune compétition trouvée.'+(fail?' ('+e(fail)+')':''));
   },
-  async team(){return '<input id="q" placeholder="Nom d\'équipe (ex : T1)"><div id="res"></div>'}
+  async team(){return '<input id="q" placeholder="Chercher une équipe (ex : T1, G2, Gen.G)"><div id="res"></div>'}
 };
 async function show(v){
   [...nav.children].forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   app.textContent='Chargement…';
   try{app.innerHTML=await views[v]();}catch(x){app.innerHTML='<div class="c">'+e(x.message)+'</div>';}
 }
+const back='<button class="back" data-back>← Retour</button>';
 async function bracket(id){
   app.textContent='Chargement…';
   try{
     const d=await api('/tournaments/'+id+'/brackets');
     d.sort((a,b)=>String(a.scheduled_at).localeCompare(String(b.scheduled_at)));
-    app.innerHTML='<button class="back" data-back>← Retour</button>'+(d.map(match).join('')||'Pas de tableau disponible.');
-  }catch(x){app.innerHTML='<button class="back" data-back>← Retour</button><div class="c">'+e(x.message)+'</div>';}
+    app.innerHTML=back+'<h2>Tableau et matchs</h2>'+(d.map(match).join('')||'Pas de tableau disponible pour cette phase.');
+  }catch(x){app.innerHTML=back+'<div class="c">'+e(x.message)+'</div>';}
 }
 async function team(id){
   app.textContent='Chargement…';
   try{
     const t=await api('/teams/'+id);
-    app.innerHTML='<button class="back" data-back>← Retour</button><h2>'+e(t.name)+'</h2>'+
-      ((t.players||[]).map(p=>'<div class="c"><b>'+e(p.name)+'</b><small>'+e(p.role||'rôle inconnu')+' · '+e(p.nationality||'')+' · '+e([p.first_name,p.last_name].filter(Boolean).join(' '))+'</small></div>').join('')||'Effectif indisponible.');
-  }catch(x){app.innerHTML='<button class="back" data-back>← Retour</button><div class="c">'+e(x.message)+'</div>';}
+    app.innerHTML=back+'<div class="pl">'+img(t.image_url)+'<h2 style="margin:0;color:inherit;font-size:1.4rem">'+e(t.name)+'</h2></div><h2>Effectif</h2>'+
+      ((t.players||[]).map(p=>'<div class="c pl">'+img(p.image_url)+'<div><b>'+e(p.name)+'</b><small>'+e(p.role||'rôle inconnu')+' · '+e(p.nationality||'')+' · '+e([p.first_name,p.last_name].filter(Boolean).join(' '))+'</small></div></div>').join('')||'Effectif indisponible.');
+  }catch(x){app.innerHTML=back+'<div class="c">'+e(x.message)+'</div>';}
 }
 let cur='up',timer;
 nav.onclick=ev=>{const v=ev.target.dataset.v;if(v){cur=v;show(v);}};
@@ -87,7 +114,7 @@ app.oninput=ev=>{
     if(q.length<2){res.innerHTML='';return;}
     try{
       const d=await api('/lol/teams',{'search[name]':q,'page[size]':15});
-      res.innerHTML=d.map(t=>'<div class="c" data-team="'+t.id+'"><b>'+e(t.name)+'</b><small>'+e(t.location||'')+'</small></div>').join('')||'Aucune équipe trouvée.';
+      res.innerHTML=d.map(t=>'<div class="c tm" data-team="'+t.id+'">'+img(t.image_url)+'<div><b>'+e(t.name)+'</b><small>'+e(t.location||'')+'</small></div></div>').join('')||'Aucune équipe trouvée.';
     }catch(x){res.innerHTML='<div class="c">'+e(x.message)+'</div>';}
   },400);
 };
