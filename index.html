@@ -1,19 +1,25 @@
 <!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8">
+<html lang="fr" data-theme="dark"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Esport – League of Legends</title>
 <style>
-:root{--bg:#0b1220;--ink:#eaf1fb;--mut:#8fa1ba;--card:#141f33;--line:#233350;--acc:#4da3ff;--live:#ff4d5e;--win:#2fd18b;--lose:#ff6b7a}
-@media(prefers-color-scheme:light){:root{--bg:#eef3f8;--ink:#10223a;--mut:#5a6b82;--card:#fff;--line:#d3dde9;--acc:#0a6cff;--win:#0f8a5f;--lose:#d6384a}}
+:root{--bg:#eef3f8;--ink:#10223a;--mut:#5a6b82;--card:#fff;--line:#d3dde9;--acc:#0a6cff;--live:#ff4d5e;--win:#0f8a5f;--lose:#d6384a}
+:root[data-theme=dark]{--bg:#0a1330;--ink:#e8eefc;--mut:#8da0cf;--card:#111d44;--line:#223468;--acc:#5b9dff;--win:#2fd18b;--lose:#ff6b7a}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,sans-serif}
-header{padding:20px 16px 8px;max-width:720px;margin:auto}
+header{display:flex;align-items:center;gap:12px;padding:12px 16px;max-width:720px;margin:auto;position:sticky;top:0;background:var(--bg);z-index:2}
+#bg{font-size:1.4rem;line-height:1;padding:8px 14px}
 h1{font-size:1.6rem;margin:0;letter-spacing:-.02em}
 header p{margin:2px 0 0;color:var(--mut)}
-nav{position:sticky;top:0;background:var(--bg);display:flex;gap:8px;overflow-x:auto;padding:10px 16px;max-width:720px;margin:auto;z-index:2}
 button,input{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 16px;border-radius:22px}
 button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
-nav button{flex:none}
+#menu{position:fixed;top:0;left:0;bottom:0;width:78%;max-width:300px;background:var(--card);border-right:1px solid var(--line);padding:20px 14px;transform:translateX(-100%);transition:transform .25s;z-index:10;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+body.open #menu{transform:none}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s;z-index:9}
+body.open #ov{opacity:1;pointer-events:auto}
+#nav{display:flex;flex-direction:column;gap:6px}
+#menu button{text-align:left;border-radius:12px;width:100%}
+.sep{height:1px;background:var(--line);margin:8px 0}
 main{padding:4px 16px 40px;max-width:720px;margin:auto}
 h2{font-size:1rem;color:var(--mut);margin:22px 0 8px}
 input{width:100%;border-radius:10px;margin:8px 0}
@@ -49,11 +55,17 @@ img{width:34px;height:34px;object-fit:contain;flex:none}
 .pl img{width:52px;height:52px;border-radius:50%;object-fit:cover}
 .role{display:inline-block;background:var(--line);border-radius:8px;padding:0 8px;font-size:.8rem;margin-left:6px}
 </style></head><body>
-<header><h1>Esport</h1><p>League of Legends · données en direct</p></header>
-<nav id="nav">
-<button data-v="up">À venir</button><button data-v="run">En cours</button>
-<button data-v="tour">Compétitions</button><button data-v="team">Équipes</button><button data-v="ply">Joueurs</button>
-</nav>
+<header><button id="bg" aria-label="Ouvrir le menu">☰</button><div><h1>Esport</h1><p id="ttl">League of Legends</p></div></header>
+<div id="ov"></div>
+<aside id="menu">
+<b style="font-size:1.2rem;margin-bottom:6px">Menu</b>
+<div id="nav">
+<button data-v="up">📅 À venir</button><button data-v="run">🔴 En cours</button>
+<button data-v="tour">🏆 Compétitions</button><button data-v="team">🛡️ Équipes</button><button data-v="ply">🎮 Joueurs</button>
+</div>
+<div class="sep"></div>
+<button id="theme"></button>
+</aside>
 <main id="app">Chargement…</main>
 <script>
 const app=document.getElementById('app'),nav=document.getElementById('nav');
@@ -102,7 +114,7 @@ function run(fn){stack.push(fn);app.textContent='Chargement…';window.scrollTo(
 const back=()=>'<button class="back" data-back>← Retour</button>';
 function show(v){
   cur=v;stack=[];
-  [...nav.children].forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  [...nav.children].forEach(b=>{const on=b.dataset.v===v;b.classList.toggle('on',on);if(on)document.getElementById('ttl').textContent=b.textContent.replace(/^\S+\s/,'');});
   run(views[v]);
 }
 const bracket=id=>async()=>{
@@ -135,7 +147,14 @@ const player=id=>async()=>{
     (p.current_team?'<div class="c go" data-team="'+p.current_team.id+'">'+img(p.current_team.image_url)+'<div><b>'+e(p.current_team.name)+'</b><small>Équipe actuelle · touche pour la voir</small></div></div>':'')+
     '<h2>Infos</h2><div class="grid">'+info.map(x=>'<div class="st"><b style="font-size:1.05rem">'+e(x[1])+'</b><span>'+e(x[0])+'</span></div>').join('')+'</div>'+stHtml;
 };
-nav.onclick=ev=>{const v=ev.target.dataset.v;if(v)show(v);};
+const closeMenu=()=>document.body.classList.remove('open');
+document.getElementById('bg').onclick=()=>document.body.classList.toggle('open');
+document.getElementById('ov').onclick=closeMenu;
+nav.onclick=ev=>{const v=ev.target.dataset.v;if(v){closeMenu();show(v);}};
+const root=document.documentElement,tb=document.getElementById('theme');
+function setTheme(t){root.dataset.theme=t;try{localStorage.setItem('th',t)}catch(x){}tb.textContent=t==='dark'?'☀️ Passer en mode clair':'🌙 Passer en mode sombre bleu';}
+setTheme((()=>{try{return localStorage.getItem('th')}catch(x){return null}})()||'dark');
+tb.onclick=()=>setTheme(root.dataset.theme==='dark'?'light':'dark');
 app.onclick=ev=>{
   const t=ev.target.closest('[data-tid],[data-team],[data-ply],[data-back]');
   if(!t)return;
@@ -156,6 +175,6 @@ app.oninput=ev=>{
       else{const d=await api('/lol/teams',{'search[name]':q,'page[size]':15});res.innerHTML=d.map(trow2).join('')||'Aucune équipe trouvée.';}
     }catch(x){res.innerHTML='<div class="c">'+e(x.message)+'</div>';}
   },400);
-  };
+};
 show('up');
 </script></body></html>
